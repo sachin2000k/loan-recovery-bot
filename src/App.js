@@ -7,7 +7,6 @@ function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
 
-  // Form state
   const [formData, setFormData] = useState({
     bot_name: "Maya",
     bank_name: "ICICI Bank",
@@ -25,12 +24,11 @@ function App() {
   useEffect(() => {
     if (!room) return;
 
-    const handleTrackSubscribed = (track, publication, participant) => {
+    const handleTrackSubscribed = (track) => {
       if (track.kind === Track.Kind.Audio) {
         setIsSpeaking(true);
         const audioElement = track.attach();
         document.body.appendChild(audioElement);
-
         audioElement.onended = () => {
           setIsSpeaking(false);
           audioElement.remove();
@@ -40,7 +38,7 @@ function App() {
 
     const handleTrackUnsubscribed = (track) => {
       if (track.kind === Track.Kind.Audio) {
-        track.detach().forEach((el) => el.remove());
+        track.detach().forEach(el => el.remove());
         setIsSpeaking(false);
       }
     };
@@ -72,21 +70,19 @@ function App() {
         ...formData,
       });
 
-      const fullUrl = `${process.env.REACT_APP_TOKEN_SERVER_URL}/api/token/loan?${queryParams.toString()}`;
-      const resp = await fetch(fullUrl);
+      const url = `${process.env.REACT_APP_TOKEN_SERVER_URL}/api/token/loan?${queryParams.toString()}`;
+      const resp = await fetch(url);
       const data = await resp.json();
-      const token = data.token;
 
       const newRoom = new Room();
-      await newRoom.connect(process.env.REACT_APP_LIVEKIT_WS_URL, token);
+      await newRoom.connect(process.env.REACT_APP_LIVEKIT_WS_URL, data.token);
       setRoom(newRoom);
       setConnected(true);
 
       const micTrack = await createLocalAudioTrack();
       await newRoom.localParticipant.publishTrack(micTrack);
-
     } catch (err) {
-      console.error('Error connecting:', err);
+      console.error('Error connecting to room:', err);
     }
   };
 
@@ -105,59 +101,145 @@ function App() {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>Voice AI Loan Bot</h1>
+    <div style={styles.container}>
+      <h1 style={styles.title}>Voice AI Loan Assistant</h1>
 
       {!connected && (
-        <form onSubmit={e => { e.preventDefault(); connectToRoom(); }}>
-          <h3>Loan Details</h3>
+        <form onSubmit={(e) => { e.preventDefault(); connectToRoom(); }} style={styles.form}>
+          <h2 style={styles.subheading}>Loan Details</h2>
           {Object.entries(formData).map(([key, value]) => (
-            <div key={key} style={{ marginBottom: '10px' }}>
-              <label style={{ marginRight: '10px' }}>{key.replace(/_/g, ' ')}:</label>
+            <div key={key} style={styles.formGroup}>
+              <label htmlFor={key} style={styles.label}>
+                {key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}:
+              </label>
               <input
-                type="text"
+                id={key}
                 name={key}
+                type="text"
                 value={value}
                 onChange={handleChange}
-                style={{ padding: '5px', width: '300px' }}
+                style={styles.input}
               />
             </div>
           ))}
-          <button type="submit" style={{ padding: '10px 20px', fontSize: '16px' }}>
-            Start Call
+
+          <button type="submit" style={styles.startButton}>
+            🎙️ Start Call
           </button>
         </form>
       )}
 
       {connected && (
-        <>
-          <button onClick={disconnectFromRoom} style={{ marginTop: '20px', padding: '10px 20px' }}>
-            End Call
+        <div style={styles.sessionContainer}>
+          <button onClick={disconnectFromRoom} style={styles.endButton}>
+            🔴 End Call
           </button>
 
-          {isSpeaking && (
-            <div style={{ marginTop: '20px', fontWeight: 'bold', fontSize: '20px', color: 'green' }}>
-              🔊 Agent is speaking...
-            </div>
-          )}
+          {isSpeaking && <div style={styles.speakingIndicator}>🔊 Agent is speaking...</div>}
 
-          <div style={{
-            marginTop: '40px',
-            border: '1px solid gray',
-            borderRadius: '8px',
-            padding: '20px'
-          }}>
-            <h3>Chat Transcript</h3>
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          <div style={styles.chatBox}>
+            <h3 style={styles.chatTitle}>Chat Transcript</h3>
+            <div style={styles.chatMessages}>
               {chatMessages.map((msg, idx) => (
-                <div key={idx}><b>{msg.sender}:</b> {msg.text}</div>
+                <div key={idx} style={styles.chatMessage}>
+                  <strong>{msg.sender}:</strong> {msg.text}
+                </div>
               ))}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
 }
+
+const styles = {
+  container: {
+    fontFamily: 'Arial, sans-serif',
+    padding: '20px',
+    maxWidth: '800px',
+    margin: '0 auto',
+    textAlign: 'center',
+  },
+  title: {
+    marginBottom: '20px',
+  },
+  subheading: {
+    marginBottom: '10px',
+    fontSize: '20px',
+    textAlign: 'left',
+  },
+  form: {
+    border: '1px solid #ccc',
+    borderRadius: '10px',
+    padding: '20px',
+    backgroundColor: '#f9f9f9',
+    textAlign: 'left',
+  },
+  formGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '12px',
+  },
+  label: {
+    flex: '0 0 220px',
+    fontWeight: 'bold',
+    textTransform: 'capitalize',
+  },
+  input: {
+    flex: 1,
+    padding: '8px',
+    fontSize: '14px',
+    borderRadius: '5px',
+    border: '1px solid #ccc',
+  },
+  startButton: {
+    marginTop: '20px',
+    padding: '12px 25px',
+    fontSize: '16px',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+  },
+  sessionContainer: {
+    marginTop: '30px',
+  },
+  endButton: {
+    padding: '12px 25px',
+    fontSize: '16px',
+    backgroundColor: '#dc3545',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+  },
+  speakingIndicator: {
+    marginTop: '20px',
+    fontWeight: 'bold',
+    fontSize: '18px',
+    color: 'green',
+  },
+  chatBox: {
+    marginTop: '30px',
+    border: '1px solid #ccc',
+    borderRadius: '10px',
+    padding: '20px',
+    textAlign: 'left',
+    backgroundColor: '#ffffff',
+  },
+  chatTitle: {
+    marginBottom: '10px',
+  },
+  chatMessages: {
+    maxHeight: '300px',
+    overflowY: 'auto',
+  },
+  chatMessage: {
+    marginBottom: '10px',
+    lineHeight: '1.4',
+  },
+};
 
 export default App;
