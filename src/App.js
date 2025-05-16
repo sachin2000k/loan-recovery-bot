@@ -70,7 +70,7 @@ function App() {
         ...formData,
       });
 
-      const url = `${process.env.REACT_APP_TOKEN_SERVER_URL}/api/token/loan?${queryParams.toString()}`;
+      const url = `${process.env.REACT_APP_TOKEN_SERVER_URL}${queryParams.toString()}`;
       const resp = await fetch(url);
       const data = await resp.json();
 
